@@ -1,0 +1,235 @@
+# AstralBridge
+
+A two-part system that syncs **D&D Beyond** dice rolls into **FoundryVTT** as native rolls in real time.
+
+---
+
+## How it works
+
+```
+D&D Beyond (browser) ──WebSocket──▶ Python Bridge ──WebSocket──▶ FoundryVTT Module
+```
+
+1. **Python Bridge** — connects to the D&D Beyond game log WebSocket, parses incoming rolls, and forwards them to all connected Foundry clients. Ships with a web dashboard at `http://host:8765`.
+2. **Foundry Module** (`/modules/astral-bridge/`) — receives rolls from the bridge and creates native Foundry chat rolls with the exact dice results from DDB.
+
+---
+
+## Features
+
+- Native Foundry rolls with exact DDB dice values (d20, damage dice, modifiers)
+- **Attack rolls** — target picker popup with AC comparison → ✓ HIT / ✗ MISS; Force Hit button overrides the result
+- **Damage rolls** — unified picker: pre-selects hit targets, lets you adjust, apply, or double (crit); auto-applies HP
+- **Heal rolls** — target picker → automatically restores HP (capped at max)
+- **Initiative rolls** — auto-sets initiative in the Foundry combat tracker
+- **Floating numbers** — damage and heal amounts float over tokens via [Sequencer](https://github.com/fantasycalendar/FoundryVTT-Sequencer) (optional)
+- **HP Sync** — compares Foundry max HP with D&D Beyond on first roll per session; prompts to update if different (optional, off by default)
+- **Automated Animations** integration — triggers AA animations on damage
+- **Dice So Nice** toggle — enable/disable 3D dice animations for DDB rolls
+- Spell & weapon lookup via [D&D 5e API](https://www.dnd5eapi.co/) — shows spell school, damage type, weapon properties, and flavour text in chat
+- Critical hit detection with gold ★ CRIT badge
+- Multi-target support with pre-selection of manually targeted tokens
+- **Outgoing webhooks** — forward roll payloads to any HTTP endpoint (e.g. Discord, n8n)
+- **Web dashboard** — live log stream, roll statistics with charts, roll history with detail modal, config editor
+- **Dancing Lights** — WLED LED strip + Home Assistant light integration; triggers ambient lighting effects for dice events and combat turns; includes a dashboard with Automatic/Manual mode toggle for direct LED control
+
+---
+
+## Requirements
+
+### Python Bridge
+- Python 3.12+ **or** Docker
+
+### Foundry Module
+- FoundryVTT v12 or v13
+- D&D 5e system
+- Optional: [Automated Animations](https://github.com/otigon/automated-jb2a-animations), [Dice So Nice](https://gitlab.com/riccisi/foundryvtt-dice-so-nice), [Sequencer](https://github.com/fantasycalendar/FoundryVTT-Sequencer)
+
+---
+
+## Setup
+
+### 1. Configure credentials
+
+Create a `.env` file (or use the web dashboard later):
+
+```env
+DDB_COBALT_TOKEN=eyJ...   # CobaltSession cookie from dndbeyond.com
+DDB_GAME_ID=1234567       # Your campaign/game ID
+DDB_USER_ID=123456789     # Your DDB user ID
+```
+
+To get your `CobaltSession` token: open D&D Beyond → DevTools → Application → Cookies → copy `CobaltSession`.
+
+### 2. Run the bridge
+
+**Option A — Docker (recommended):**
+
+```bash
+docker compose up -d
+```
+
+**Option B — Python directly:**
+
+```bash
+pip install fastapi "uvicorn[standard]" websocket-client requests httpx python-dotenv pydantic
+python3 bridge.py
+```
+
+Web dashboard: `http://localhost:8765`
+Press `Q + Enter` to stop (Python mode).
+
+### 3. Install the Foundry module
+
+Copy the `astral-bridge` folder into your FoundryVTT `Data/modules/` directory and enable it in **Settings → Manage Modules**.
+
+### 4. Configure the module
+
+In FoundryVTT: **Settings → Module Settings → AstralBridge**
+
+| Setting | Default | Description |
+|---|---|---|
+| Bridge WebSocket URL | `ws://localhost:8765/ws` | Address of the Python bridge |
+| Roll Mode | Public Roll | How DDB rolls appear in chat |
+| Auto-set Initiative | ✓ | Updates combat tracker on initiative rolls |
+| Dice So Nice Animation | ✓ | Show 3D dice for DDB rolls |
+| Automated Animations | ✓ | Trigger AA animations on damage |
+| Damage Confirm Dialog | ✓ | Show target picker before applying damage |
+| Floating Numbers | ✓ | Show floating damage/heal numbers via Sequencer |
+| HP Sync | ✗ | Compare DDB max HP with Foundry on first roll per session |
+
+---
+
+## Web Dashboard
+
+The bridge ships a built-in dashboard at `http://host:8765`:
+
+- **Live** — live log stream + recent rolls; click any roll for full detail (dice, raw JSON, resend)
+- **Statistics** — Nat 20s, Nat 1s, average per character, roll distribution charts
+- **Settings** — update credentials and restart the DDB connection without touching the terminal
+- **Dancing Lights** — LED lighting control (see below)
+
+---
+
+## Dancing Lights
+
+Optional LED lighting integration for physical ambiance at the table. Supports **WLED** LED strips and **Home Assistant** lights — mix and match multiple devices. Configure under the **Dancing Lights** section of the web dashboard.
+
+### Dashboard tabs
+
+- **Dashboard** — Automatic/Manual mode toggle. In Automatic mode, dice events and combat turns drive the LEDs. In Manual mode, automatic signals are suspended and you control lights directly via preset buttons or a custom color/effect/brightness/speed editor.
+- **Events** — configure which roll events trigger animations (nat 20, nat 1, damage, heal, …) and set their color, effect, brightness, speed, and duration.
+- **Ambient** — define named ambient lighting modes (e.g. Tavern, Ocean, Hell) and activate one as the background layer.
+- **Config** — manage devices (WLED IPs or Home Assistant entity IDs), set LED counts, brightness, player segments, and corner preview positions. Add a Home Assistant URL and long-lived access token to enable HA lights.
+
+### Layer model (highest wins)
+
+| Layer | Source |
+|-------|--------|
+| 2 — Roll | Triggered by dice events; auto-restores after duration |
+| 1 — Player | Combat turn signal mapped by character name |
+| 0 — Ambient | Persistent background mode |
+| — | Neutral (dim blue-white) |
+
+### Device types
+
+| Type | Config needed |
+|------|--------------|
+| WLED | Device IP address |
+| Home Assistant | HA base URL + long-lived access token + `light.*` entity ID |
+
+---
+
+## Outgoing Webhooks
+
+The bridge can forward every incoming roll payload to one or more HTTP endpoints. Useful for Discord bots, n8n automations, or any custom integration.
+
+Manage webhook URLs via the dashboard (**Settings → Webhooks**) or the API:
+
+```
+GET    /api/webhooks          list registered URLs
+POST   /api/webhooks          add a URL  {"url": "https://..."}
+DELETE /api/webhooks/{index}  remove by index
+```
+
+---
+
+## Character Name Matching
+
+The Foundry module matches the character name from DDB against actor names in Foundry. If **Bichael May** rolls in DDB, the Foundry actor must also be named **Bichael May** for the speaker portrait to appear. The roll still posts to chat if no match is found.
+
+---
+
+## File Structure
+
+```
+bridge.py                  # App entry point: lifespan, middleware, router registration
+logger.py                  # Shared log buffer and file persistence
+settings.py                # ENV_PATH constant
+
+models/
+  config.py                # ConfigUpdate (Pydantic)
+  roll.py                  # RollSummary (Pydantic)
+  webhook.py               # WebhookAdd (Pydantic)
+
+services/
+  ddb_client.py            # DDB WebSocket client (connect, parse, reconnect)
+  roll_store.py            # roll_history deque + roll_index dict, load/save
+  webhook_service.py       # load/save/dispatch outgoing webhooks
+  foundry.py               # foundry_clients set, broadcast_to_foundry
+
+routes/
+  rolls.py                 # GET/DELETE /api/rolls, GET /api/rolls/{id}, POST resend
+  config.py                # GET /api/status, GET/POST /api/config, POST /api/restart
+  webhooks.py              # GET/POST /api/webhooks, DELETE /api/webhooks/{index}
+  character.py             # GET /api/character/{entity_id}
+  logs.py                  # GET /api/logs/stream, DELETE /api/logs
+  ws.py                    # WebSocket /ws (Foundry client handler)
+
+dancing_lights/
+  __init__.py              # Public re-exports
+  config.py                # dl_load/save, default event/ambient configs
+  devices.py               # WLED HTTP dispatch, Home Assistant REST dispatch
+  layers.py                # Layer state, dl_trigger, dl_auto_signal, dl_detect_event
+  routes.py                # FastAPI router — all /dl/ endpoints
+
+static/
+  app.css                  # Dashboard styles
+  app.js                   # Dashboard logic
+
+templates/
+  index.html               # Dashboard HTML shell
+
+data/
+  logs.jsonl               # Persistent log history (auto-created, gitignored)
+  rolls.json               # Persistent roll history (auto-created, gitignored)
+  dancing_lights.json      # Dancing Lights config (auto-created, gitignored)
+
+modules/astral-bridge/
+  module.json
+  scripts/main.js          # Foundry module logic
+  styles/astral-bridge.css
+
+tests/
+  conftest.py
+  test_dancing_lights.py
+  test_rolls.py
+  test_config.py
+  test_webhooks.py
+```
+
+---
+
+## Disclaimer
+
+> **This project was built with the assistance of [Claude](https://claude.ai) (Anthropic), an AI coding assistant.**
+>
+> The majority of the code — including the Python bridge, FastAPI endpoints, FoundryVTT module logic, web dashboard UI, and all integrations — was written collaboratively with Claude Code (claude-sonnet-4-6). The project was directed, tested, and iterated on by a human, with AI generating and refining the implementation.
+>
+> This is not an official D&D Beyond or FoundryVTT product. It uses unofficial/internal DDB WebSocket APIs that may change without notice. Use at your own risk.
+
+---
+
+## License
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE) for details.

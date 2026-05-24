@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AstralBridge</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<header>
+  <!-- Module Picker -->
+  <div class="module-pick" id="module-pick">
+    <button class="module-btn" onclick="toggleModulePick(event)">
+      <span id="module-icon">⬡</span>
+      <span id="module-name">AstralBridge</span>
+      <span class="mod-arrow">▾</span>
+    </button>
+    <div class="module-drop">
+      <div class="module-opt active" id="mopt-ab" onclick="switchModule('ab')">
+        <span>⬡</span>
+        <div><div>AstralBridge</div><div class="mod-opt-sub">D&amp;D Beyond bridge</div></div>
+      </div>
+      <div class="module-opt" id="mopt-dl" onclick="switchModule('dl')">
+        <span>🕯️</span>
+        <div><div>Dancing Lights</div><div class="mod-opt-sub">WLED controller</div></div>
+        <span class="dl-badge" id="dl-badge">OFF</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AstralBridge tabs -->
+  <div class="tabs" id="tabs-ab">
+    <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab-btn" id="tab-stats" onclick="switchTab('stats')">Statistics</button>
+    <button class="tab-btn" id="tab-config" onclick="switchTab('config')">Config</button>
+  </div>
+
+  <!-- Dancing Lights tabs -->
+  <div class="tabs" id="tabs-dl" style="display:none;">
+    <button class="tab-btn"        id="tab-dl-dashboard" onclick="switchDlTab('dashboard')">Dashboard</button>
+    <button class="tab-btn active" id="tab-dl-events"    onclick="switchDlTab('events')">Events</button>
+    <button class="tab-btn"        id="tab-dl-ambient"   onclick="switchDlTab('ambient')">Ambient</button>
+    <button class="tab-btn"        id="tab-dl-config"    onclick="switchDlTab('config')">Config</button>
+    <button class="tab-btn"        id="tab-dl-devices"   onclick="switchDlTab('devices')">Devices</button>
+  </div>
+
+  <div class="status-row">
+    <!-- AB status (hidden when DL active) -->
+    <span id="pill-ddb"     class="pill err">DDB: Disconnected</span>
+    <span id="pill-foundry" class="pill dim">Foundry: 0 clients</span>
+    <!-- DL enable toggle (hidden when AB active) -->
+    <label class="dl-hdr-toggle" id="dl-hdr-toggle" style="display:none;" title="Enable/disable Dancing Lights integration">
+      <input type="checkbox" id="dl-enabled-chk" onchange="setDlEnabled(this.checked)">
+      <div class="dl-track"></div>
+      <span class="dl-hdr-label">Dancing Lights</span>
+    </label>
+    <a href="https://github.com/rauchmo/AstralBridge" target="_blank" class="gh-link">
+      <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<!-- DL: live LED strip — full width, below header, all DL tabs -->
+<div id="dl-live-strip" style="display:none;padding:8px 14px 6px;background:var(--surface);border-bottom:1px solid var(--border);">
+  <canvas id="dl-live-canvas" height="50" style="width:100%;display:block;border-radius:5px;background:#050709;"></canvas>
+</div>
+
+<!-- Statistics View -->
+<div id="view-stats">
+  <div class="stat-cards">
+    <div class="stat-card"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total Rolls</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-nat20" style="color:#56d364;">0</div><div class="stat-lbl">Nat 20s 🎯</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-nat1"  style="color:#f85149;">0</div><div class="stat-lbl">Nat 1s 💀</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-avg">—</div><div class="stat-lbl">Avg d20 Roll</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-crits" style="color:#e3b341;">0</div><div class="stat-lbl">Crits / Misses</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h4>Nat 20s &amp; Nat 1s per Character</h4>
+      <canvas id="chart-nat"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Roll Type Distribution</h4>
+      <canvas id="chart-types"></canvas>
+    </div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h4>d20 Result Distribution</h4>
+      <canvas id="chart-dist"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Average Total per Character</h4>
+      <canvas id="chart-avg"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h4>All Rolls</h4>
+    <div id="stats-roll-list" style="display:flex; flex-direction:column; gap:4px; max-height:340px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div id="view-dashboard" class="layout active">
+
+  <!-- Log panel -->
+  <div class="panel">
+    <div class="panel-title">
+      Live Log
+      <button class="btn small" onclick="clearLogs()">Clear</button>
+      <span id="log-persist-hint" style="font-size:0.75em; color:#484f58; text-transform:none; letter-spacing:0;">persisted</span>
+    </div>
+    <div id="log-output"></div>
+  </div>
+
+  <!-- Rolls panel -->
+  <div class="panel">
+    <div class="panel-title">
+      Recent Rolls
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span id="roll-count" style="color:#484f58; font-size:0.9em; text-transform:none; letter-spacing:0;">0 rolls</span>
+        <button class="btn small" onclick="clearRolls()">Clear</button>
+      </div>
+    </div>
+    <div id="roll-list"></div>
+  </div>
+
+</div><!-- end view-dashboard -->
+
+<!-- Config View -->
+<div id="view-config">
+
+  <div class="card">
+    <h3>Connection</h3>
+    <button class="btn danger" onclick="restartDDB()">↺ Restart DDB Connection</button>
+  </div>
+
+  <div class="card">
+    <h3>Campaign</h3>
+    <div class="form-group">
+      <label>Game ID</label>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="quick-game-id" placeholder="e.g. 1234567" style="flex:1;">
+        <button class="btn primary small" onclick="switchGameId()">Switch</button>
+      </div>
+      <div style="font-size:0.78em; color:#8b949e; margin-top:4px;">
+        Enter your DDB Campaign/Game ID and click Switch to reconnect.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Webhooks</h3>
+    <p style="font-size:0.82em;color:#8b949e;margin-bottom:10px;">
+      Every roll is POSTed as JSON to these URLs. Enter a full URL or <code style="background:#21262d;padding:1px 4px;border-radius:3px;">http://ip:port/path</code>.
+    </p>
+    <div id="webhook-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:6px;">
+      <input type="text" id="webhook-input" placeholder="http://192.168.1.x:9000/roll" style="flex:1;">
+      <button class="btn primary small" onclick="addWebhook()">Add</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>D&D Beyond Config</h3>
+    <div class="form-group">
+      <label>Cobalt Session Token <button onclick="togglePw('cobalt-token', this)">Show</button></label>
+      <input type="password" id="cobalt-token" placeholder="eyJ...">
+    </div>
+    <div class="form-group">
+      <label>Game ID</label>
+      <input type="text" id="game-id" placeholder="1234567">
+    </div>
+    <div class="form-group">
+      <label>User ID</label>
+      <input type="text" id="user-id" placeholder="123456789">
+    </div>
+    <button class="btn" onclick="saveConfig(false)">Save</button>
+    <button class="btn primary" onclick="saveConfig(true)">Save &amp; Restart</button>
+  </div>
+
+</div>
+
+<!-- ══ DANCING LIGHTS VIEWS ══════════════════════════════════════════════ -->
+
+<!-- DL: Dashboard -->
+<div id="view-dl-dashboard" class="dl-view">
+  <div class="card">
+
+    <!-- Mode toggle row -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+      <div style="flex:1">
+        <div style="font-size:.75em;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:3px">Mode</div>
+        <div id="dl-mode-label" style="font-size:.95em;color:var(--text)">Automatic</div>
+        <div id="dl-mode-desc"  style="font-size:.78em;color:var(--text-muted);margin-top:2px">Events &amp; combat turns run automatically</div>
+      </div>
+      <div id="dl-mode-toggle" onclick="dlToggleMode()" style="width:52px;height:28px;background:#1a3a1a;border:1px solid #2a7a2a;border-radius:14px;cursor:pointer;position:relative;transition:background .2s">
+        <div id="dl-mode-knob" style="width:22px;height:22px;background:#4c4;border-radius:50%;position:absolute;top:2px;left:26px;transition:left .2s"></div>
+      </div>
+    </div>
+
+    <!-- Strip on/off row -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+      <div style="flex:1;font-size:.78em;color:var(--text-muted)">LED Strip</div>
+      <button class="btn small" onclick="dlStripOff()">⬛ Off</button>
+      <button class="btn small primary" onclick="dlStripOn()">💡 On</button>
+    </div>
+
+    <!-- Ambient during turn -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div style="flex:1">
+        <div style="font-size:.82em;color:var(--text)">Ambient during turn</div>
+        <div style="font-size:.73em;color:var(--text-muted);margin-top:2px">Show ambient behind the active player's LEDs</div>
+      </div>
+      <label class="dl-toggle">
+        <input type="checkbox" id="dl-ambient-during-turn" onchange="dlSaveTurnSettings()">
+        <div class="dl-toggle-track"></div>
+      </label>
+    </div>
+
+    <!-- Buffer LEDs -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+      <div style="flex:1">
+        <div style="font-size:.82em;color:var(--text)">Buffer LEDs (each side)</div>
+        <div style="font-size:.73em;color:var(--text-muted);margin-top:2px">LEDs turned off on each side of the player</div>
+      </div>
+      <input type="number" id="dl-turn-buffer" value="2" min="0" max="30" style="width:55px;text-align:center;" onchange="dlSaveTurnSettings()">
+    </div>
+
+    <!-- Automatic content -->
+    <div id="dl-auto-content">
+      <div style="font-size:.78em;color:var(--text-muted);text-align:center;padding:20px 0">
+        <div style="font-size:1.6em;margin-bottom:8px">⚡</div>
+        Automatic mode active — dice rolls &amp; combat turns control the LEDs
+      </div>
+    </div>
+
+    <!-- Manual content -->
+    <div id="dl-manual-content" style="display:none">
+
+      <!-- Presets -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:.7em;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:8px">Presets</div>
+        <div id="dl-preset-buttons" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+
+      <!-- Custom editor -->
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:.7em;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:10px">Custom</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:.82em">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:80px;color:var(--text-muted)">Color</span>
+            <input type="color" id="dl-custom-color" value="#ffffff" style="cursor:pointer;border:none;background:none" oninput="dlCustomChanged()">
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:80px;color:var(--text-muted)">Effect</span>
+            <select id="dl-custom-fx" style="font-size:.9em;padding:2px 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:3px" onchange="dlCustomChanged()"></select>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:80px;color:var(--text-muted)">Brightness</span>
+            <input type="range" id="dl-custom-bri" min="10" max="255" value="180" style="width:120px" oninput="dlCustomBriLabel.textContent=this.value; dlCustomChanged()">
+            <span style="width:30px;color:var(--text-muted)" id="dlCustomBriLabel">180</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:80px;color:var(--text-muted)">Speed</span>
+            <input type="range" id="dl-custom-sx" min="0" max="255" value="128" style="width:120px" oninput="dlCustomSxLabel.textContent=this.value; dlCustomChanged()">
+            <span style="width:30px;color:var(--text-muted)" id="dlCustomSxLabel">128</span>
+          </div>
+          <button class="btn small" onclick="dlCustomApply()">Apply</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+      <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin:0;">Combat Control</h3>
+      <button class="btn small danger" id="dl-ds-clear-btn" onclick="dlDsClear()" style="display:none;">✕ Clear Signal</button>
+    </div>
+    <p style="font-size:.78em;color:var(--text-muted);margin-bottom:12px;">Manually signal whose turn it is.</p>
+    <div id="dl-ds-combat" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+  </div>
+
+</div>
+
+<!-- DL: Events -->
+<div id="view-dl-events" class="dl-view">
+  <div class="card">
+    <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">Event Animations</h3>
+    <p style="font-size:.82em;color:var(--text-muted);margin-bottom:16px;">Configure which animation plays for each roll type. The previous WLED state is restored after the duration.</p>
+    <div class="dl-event-grid" id="dl-event-grid"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn primary small" onclick="dlSaveEvents()">Save All Events</button>
+    </div>
+
+    <!-- Add Event form -->
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px;">
+      <div style="font-size:.78em;color:var(--text-muted);margin-bottom:10px;">Add new event</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Key (slug)</label>
+          <input type="text" id="dl-add-ev-key" placeholder="e.g. fire_damage" style="width:100%;"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Label</label>
+          <input type="text" id="dl-add-ev-label" placeholder="Fire Damage" style="width:100%;"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Color</label>
+          <input type="color" id="dl-add-ev-color" value="#ff3200"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Effect</label>
+          <select id="dl-add-ev-fx" style="font-size:.85em;width:100%;"></select></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Brightness</label>
+          <input type="number" id="dl-add-ev-bri" value="200" min="0" max="255" style="width:80px;"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Speed</label>
+          <input type="number" id="dl-add-ev-spd" value="150" min="0" max="255" style="width:80px;"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Duration (ms)</label>
+          <input type="number" id="dl-add-ev-dur" value="2000" min="500" max="10000" step="100" style="width:100px;"></div>
+        <div style="display:flex;align-items:flex-end;">
+          <label class="dl-toggle">
+            <input type="checkbox" id="dl-add-ev-en" checked>
+            <div class="dl-toggle-track"></div>
+            <span class="dl-toggle-label">Active</span>
+          </label>
+        </div>
+      </div>
+      <button class="btn primary small" onclick="dlAddEvent()">Add event</button>
+    </div>
+  </div>
+</div>
+
+<!-- DL: Ambient -->
+<div id="view-dl-ambient" class="dl-view">
+  <div class="card">
+    <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">AMBIENT</h3>
+    <p style="font-size:.82em;color:var(--text-muted);margin-bottom:14px;">Select an ambient mode or turn it off. The active mode plays continuously when no animation is running.</p>
+    <div id="dl-ambient-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+
+    <!-- Inline editor (shown when a mode is selected) -->
+    <div id="dl-ambient-editor" style="display:none;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;margin-bottom:14px;">
+      <div style="font-size:.75em;color:var(--text-muted);margin-bottom:8px;" id="dl-ambient-editor-label">Mode</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <label style="font-size:.8em;color:var(--text-muted);">Color
+          <input type="color" id="dl-ambient-color" style="margin-left:6px;cursor:pointer;" oninput="dlAmbientPatch()">
+        </label>
+        <label style="font-size:.8em;color:var(--text-muted);">Effect
+          <select id="dl-ambient-fx" style="margin-left:6px;font-size:.85em;" onchange="dlAmbientPatch()"></select>
+        </label>
+        <label style="font-size:.8em;color:var(--text-muted);">Brightness
+          <input type="range" id="dl-ambient-bri" min="10" max="255" style="width:80px;margin-left:6px;" oninput="dlAmbientPatch()">
+        </label>
+        <label style="font-size:.8em;color:var(--text-muted);">Speed
+          <input type="range" id="dl-ambient-sx" min="10" max="255" style="width:80px;margin-left:6px;" oninput="dlAmbientPatch()">
+        </label>
+      </div>
+    </div>
+
+    <!-- Add Mode form -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+      <div style="font-size:.78em;color:var(--text-muted);margin-bottom:8px;">Add new mode</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Name (slug)</label>
+          <input type="text" id="dl-add-amb-name" placeholder="e.g. city" style="width:100px;">
+        </div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Color</label>
+          <input type="color" id="dl-add-amb-color" value="#7c5cbf">
+        </div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Effect</label>
+          <select id="dl-add-amb-fx" style="font-size:.85em;"></select>
+        </div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Brightness</label>
+          <input type="number" id="dl-add-amb-bri" value="150" min="10" max="255" style="width:60px;">
+        </div>
+        <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Speed</label>
+          <input type="number" id="dl-add-amb-sx" value="100" min="10" max="255" style="width:60px;">
+        </div>
+        <button class="btn primary small" onclick="dlAddAmbientMode()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DL: Config (formerly Dungeon Screen) -->
+<div id="view-dl-config" class="dl-view">
+
+  <div class="card">
+    <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">Dungeon Screen Device</h3>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:140px;"><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">WLED IP</label><input type="text" id="dl-ds-ip" placeholder="e.g. 10.130.1.101"></div>
+      <div style="width:100px;"><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">Total LEDs</label><input type="number" id="dl-ds-total" min="1" max="1000" placeholder="60"></div>
+      <div style="width:100px;"><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">Brightness</label><input type="number" id="dl-ds-bri" min="0" max="255" placeholder="180"></div>
+      <button class="btn primary small" onclick="dlSaveDsConfig()">Save</button>
+      <button class="btn small" onclick="dlPingDs()">Ping</button>
+    </div>
+    <div id="dl-ds-ping" style="font-size:.78em;color:var(--text-muted);margin-top:8px;"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">LED Strip — Seat Map</h3>
+    <p style="font-size:.78em;color:var(--text-muted);margin-bottom:10px;">Drag player segments to position them. Gold markers (▼) = screen corners.</p>
+    <canvas id="dl-ds-canvas" height="70" style="width:100%;border-radius:6px;background:#050709;display:block;"></canvas>
+    <div style="display:flex;justify-content:space-between;font-size:.7em;color:var(--text-muted);margin-top:3px;">
+      <span>LED 0</span><span id="dl-ds-led-label">LED ?</span>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:.78em;color:var(--text-muted);margin-bottom:8px;">Screen Layout — drag corner markers ▼ to define the 4 edges</div>
+      <canvas id="dl-ds-screen" height="200" style="width:100%;border-radius:6px;background:#050709;display:block;"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="margin-bottom:14px;">
+      <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin:0;">Player Seats</h3>
+    </div>
+    <div id="dl-ds-player-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+
+    <!-- Edit panel -->
+    <div id="dl-ds-edit-panel" style="display:none;border:1px solid var(--accent);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--bg);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:.85em;font-weight:600;color:var(--gold);">Edit Seat</span>
+        <button class="btn small" onclick="dlDsDeselect()">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">Player name</label><input type="text" id="dl-edit-name" placeholder="Aria"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">DDB Character</label><input type="text" id="dl-edit-char" placeholder="(auto-signal)"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+        <div><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">Color</label><input type="color" id="dl-edit-color"></div>
+        <label class="dl-toggle" style="margin-top:16px;">
+          <input type="checkbox" id="dl-edit-auto">
+          <div class="dl-toggle-track"></div>
+          <span class="dl-toggle-label">Auto-signal on roll</span>
+        </label>
+      </div>
+      <button class="btn primary small" onclick="dlDsSaveEdit()">Save Changes</button>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:.78em;color:var(--text-muted);margin-bottom:8px;">Add a player seat</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">Player name</label><input type="text" id="dl-add-name" placeholder="Aria"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">DDB Character</label><input type="text" id="dl-add-char" placeholder="(auto-signal)"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">Start LED</label><input type="number" id="dl-add-start" value="0" min="0"></div>
+        <div><label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">End LED</label><input type="number" id="dl-add-end" value="5" min="1"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="color" id="dl-add-color" value="#ffcc00" title="Seat color">
+        <label class="dl-toggle" title="Auto-signal when character rolls">
+          <input type="checkbox" id="dl-add-auto" checked>
+          <div class="dl-toggle-track"></div>
+          <span class="dl-toggle-label">Auto-signal on roll</span>
+        </label>
+        <button class="btn primary small" onclick="dlDsAddPlayer()">Add Seat</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">Home Assistant</h3>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">URL</label>
+        <input type="text" id="ha-url" placeholder="http://homeassistant.local:8123" style="width:100%;">
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <label style="font-size:.78em;color:var(--text-muted);margin-bottom:4px;display:block;">Token</label>
+        <input type="password" id="ha-token" placeholder="Long-Lived Access Token" style="width:100%;">
+      </div>
+      <button class="btn primary small" onclick="dlSaveHaConfig()">Save</button>
+    </div>
+    <div id="ha-config-status" style="font-size:.78em;color:var(--text-muted);margin-top:8px;"></div>
+  </div>
+
+
+</div>
+
+<!-- DL: Devices -->
+<div id="view-dl-devices" class="dl-view" style="display:none;">
+
+  <!-- Device picker card -->
+  <div class="card">
+    <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">Simple Devices</h3>
+
+    <!-- Picker row -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <select id="dev-picker" onchange="devSelectDevice(this.value)"
+              style="flex:1;font-size:.9em;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;">
+      </select>
+      <button class="btn small primary" onclick="devShowAddForm()">+ Gerät</button>
+      <button class="btn small danger"  onclick="devDeleteDevice()" id="dev-delete-btn" style="display:none;">🗑</button>
+    </div>
+
+    <!-- Add form -->
+    <div id="dev-add-form" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;">
+      <div style="font-size:.75em;color:var(--text-muted);margin-bottom:8px;">Neues Gerät</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label style="font-size:.75em;color:var(--text-muted);display:block;margin-bottom:2px;">Name</label>
+          <input type="text" id="dev-add-name" placeholder="Tischrand" style="width:120px;"></div>
+        <div><label style="font-size:.75em;color:var(--text-muted);display:block;margin-bottom:2px;">IP</label>
+          <input type="text" id="dev-add-ip" placeholder="192.168.1.x" style="width:130px;"></div>
+        <button class="btn small primary" onclick="devAddDevice()">Hinzufügen</button>
+        <button class="btn small" onclick="devHideAddForm()">Abbrechen</button>
+      </div>
+    </div>
+
+    <!-- Device settings (hidden when no device) -->
+    <div id="dev-settings" style="display:none;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+        <div style="width:160px;">
+          <label style="font-size:.75em;color:var(--text-muted);display:block;margin-bottom:2px;">Typ</label>
+          <select id="dev-type" onchange="devTypeChanged()" style="width:100%;font-size:.9em;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:4px;">
+            <option value="wled">WLED</option>
+            <option value="ha">Home Assistant</option>
+          </select>
+        </div>
+        <div id="dev-ip-wrap" style="flex:1;min-width:130px;">
+          <label style="font-size:.75em;color:var(--text-muted);display:block;margin-bottom:2px;">IP</label>
+          <input type="text" id="dev-ip" style="width:100%;" onblur="devSaveHeader()">
+        </div>
+        <div id="dev-entity-wrap" style="flex:1;min-width:130px;display:none;">
+          <label style="font-size:.75em;color:var(--text-muted);display:block;margin-bottom:2px;">Entity ID</label>
+          <input type="text" id="dev-entity-id" placeholder="light.tischlampe" style="width:100%;" onblur="devSaveHeader()">
+        </div>
+        <label class="dl-toggle" style="margin-top:18px;">
+          <input type="checkbox" id="dev-enabled" onchange="devSaveHeader()">
+          <div class="dl-toggle-track"></div>
+          <span class="dl-toggle-label">Enabled</span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:.78em;color:var(--text-muted);width:80px;">Brightness</span>
+        <input type="range" id="dev-bri" min="10" max="255" value="180" style="width:120px;"
+               oninput="document.getElementById('devBriLbl').textContent=this.value" onchange="devSaveHeader()">
+        <span id="devBriLbl" style="font-size:.78em;color:var(--text-muted);width:30px;">180</span>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="dev-empty" style="font-size:.82em;color:var(--text-muted);text-align:center;padding:16px 0;">
+      Noch kein Gerät — füge eines hinzu.
+    </div>
+  </div>
+
+  <!-- Sub-tabs (hidden when no device) -->
+  <div id="dev-subtabs-container" style="display:none;">
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+      <button class="tab-btn active" id="tab-dev-dashboard" onclick="switchDevTab('dashboard')">Dashboard</button>
+      <button class="tab-btn"        id="tab-dev-events"    onclick="switchDevTab('events')">Events</button>
+      <button class="tab-btn"        id="tab-dev-ambient"   onclick="switchDevTab('ambient')">Ambient</button>
+    </div>
+
+    <!-- Dashboard sub-tab -->
+    <div id="view-dev-dashboard">
+      <div class="card">
+        <!-- Mode toggle -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <div style="flex:1">
+            <div style="font-size:.75em;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:3px;">Mode</div>
+            <div id="dev-mode-label" style="font-size:.95em;color:var(--text);">Automatic</div>
+            <div id="dev-mode-desc"  style="font-size:.78em;color:var(--text-muted);margin-top:2px;">Events laufen automatisch</div>
+          </div>
+          <div id="dev-mode-toggle" onclick="devToggleMode()"
+               style="width:52px;height:28px;background:#1a3a1a;border:1px solid #2a7a2a;border-radius:14px;cursor:pointer;position:relative;transition:background .2s">
+            <div id="dev-mode-knob" style="width:22px;height:22px;background:#4c4;border-radius:50%;position:absolute;top:2px;left:26px;transition:left .2s"></div>
+          </div>
+        </div>
+
+        <!-- Sync button -->
+        <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <button class="btn small" onclick="devSyncAmbient()" id="dev-sync-btn"
+                  style="width:100%;justify-content:center;">⟳ Ambient vom Dungeon Screen übernehmen</button>
+        </div>
+
+        <!-- Auto content -->
+        <div id="dev-auto-content">
+          <div style="font-size:.78em;color:var(--text-muted);text-align:center;padding:16px 0;">
+            <div style="font-size:1.6em;margin-bottom:8px;">⚡</div>
+            Automatic — Würfelereignisse steuern die LEDs
+          </div>
+        </div>
+
+        <!-- Manual content -->
+        <div id="dev-manual-content" style="display:none;">
+          <div style="margin-bottom:14px;">
+            <div style="font-size:.7em;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:8px;">Presets</div>
+            <div id="dev-preset-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:14px;">
+            <div style="font-size:.7em;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:10px;">Custom</div>
+            <div style="display:flex;flex-direction:column;gap:10px;font-size:.82em;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:80px;color:var(--text-muted);">Color</span>
+                <input type="color" id="dev-custom-color" value="#ffffff" oninput="devCustomChanged()">
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:80px;color:var(--text-muted);">Effect</span>
+                <select id="dev-custom-fx" style="font-size:.9em;padding:2px 6px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:3px;" onchange="devCustomChanged()"></select>
+                <input type="text" id="dev-custom-ha-fx" placeholder="z.B. colorloop" style="display:none;width:140px;" oninput="devCustomChanged()">
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:80px;color:var(--text-muted);">Brightness</span>
+                <input type="range" id="dev-custom-bri" min="10" max="255" value="180" style="width:120px;"
+                       oninput="document.getElementById('devCustomBriLbl').textContent=this.value; devCustomChanged()">
+                <span id="devCustomBriLbl" style="width:30px;color:var(--text-muted);">180</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:80px;color:var(--text-muted);">Speed</span>
+                <input type="range" id="dev-custom-sx" min="0" max="255" value="128" style="width:120px;"
+                       oninput="document.getElementById('devCustomSxLbl').textContent=this.value; devCustomChanged()">
+                <span id="devCustomSxLbl" style="width:30px;color:var(--text-muted);">128</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events sub-tab -->
+    <div id="view-dev-events" style="display:none;">
+      <div class="card">
+        <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">Event Animationen</h3>
+        <div class="dl-event-grid" id="dev-event-grid"></div>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn primary small" onclick="devSaveAllEvents()">Alle Events speichern</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ambient sub-tab -->
+    <div id="view-dev-ambient" style="display:none;">
+      <div class="card">
+        <h3 style="font-size:.65em;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">AMBIENT</h3>
+        <div id="dev-ambient-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+
+        <!-- Inline editor -->
+        <div id="dev-ambient-editor" style="display:none;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;margin-bottom:14px;">
+          <div style="font-size:.75em;color:var(--text-muted);margin-bottom:8px;" id="dev-ambient-editor-label">Mode</div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <label style="font-size:.8em;color:var(--text-muted);">Color
+              <input type="color" id="dev-ambient-color" style="margin-left:6px;cursor:pointer;" oninput="devAmbientPatch()">
+            </label>
+            <label id="dev-ambient-fx-wrap" style="font-size:.8em;color:var(--text-muted);">Effect
+              <select id="dev-ambient-fx" style="margin-left:6px;font-size:.85em;" onchange="devAmbientPatch()"></select>
+            </label>
+            <label id="dev-ambient-ha-fx-wrap" style="font-size:.8em;color:var(--text-muted);display:none;">Effect
+              <input type="text" id="dev-ambient-ha-fx" placeholder="z.B. colorloop" style="margin-left:6px;width:100px;" oninput="devAmbientPatch()">
+            </label>
+            <label style="font-size:.8em;color:var(--text-muted);">Brightness
+              <input type="range" id="dev-ambient-bri" min="10" max="255" style="width:80px;margin-left:6px;" oninput="devAmbientPatch()">
+            </label>
+            <label style="font-size:.8em;color:var(--text-muted);">Speed
+              <input type="range" id="dev-ambient-sx" min="10" max="255" style="width:80px;margin-left:6px;" oninput="devAmbientPatch()">
+            </label>
+          </div>
+        </div>
+
+        <!-- Add mode form -->
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+          <div style="font-size:.78em;color:var(--text-muted);margin-bottom:8px;">Modus hinzufügen</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+            <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Name</label>
+              <input type="text" id="dev-add-amb-name" placeholder="z.B. city" style="width:100px;"></div>
+            <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Color</label>
+              <input type="color" id="dev-add-amb-color" value="#7c5cbf"></div>
+            <div id="dev-add-amb-fx-wrap"><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Effect</label>
+              <select id="dev-add-amb-fx" style="font-size:.85em;"></select></div>
+            <div id="dev-add-amb-ha-fx-wrap" style="display:none;"><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Effect</label>
+              <input type="text" id="dev-add-amb-ha-fx" placeholder="colorloop" style="width:90px;"></div>
+            <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Brightness</label>
+              <input type="number" id="dev-add-amb-bri" value="150" min="10" max="255" style="width:65px;"></div>
+            <div><label style="font-size:.78em;color:var(--text-muted);display:block;margin-bottom:3px;">Speed</label>
+              <input type="number" id="dev-add-amb-sx" value="100" min="10" max="255" style="width:65px;"></div>
+            <button class="btn primary small" onclick="devAddAmbientMode()">Hinzufügen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- end dev-subtabs-container -->
+
+</div><!-- end view-dl-devices -->
+
+<!-- Detail Modal -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Roll Detail</h2>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn small primary" id="resend-btn" onclick="resendRoll()">↺ Resend to Foundry</button>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

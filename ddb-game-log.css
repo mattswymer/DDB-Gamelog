@@ -1,0 +1,278 @@
+/* ---------- DDB Gamelog Chat Card Styling ---------- */
+
+.ddb-roll-flavor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px 6px 10px;
+  border-left: 3px solid var(--ddb-border-color, var(--color-border));
+  background: var(--ddb-bg-color, rgba(0, 0, 0, 0.05));
+  border-radius: 0 6px 6px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 4px 0;
+  transition: all 0.2s ease;
+}
+
+/* Roll Type Colors utilizing CSS Custom Properties */
+.ddb-type-attack {
+  --ddb-border-color: #d32f2f;
+  --ddb-bg-color: rgba(211, 47, 47, 0.05);
+}
+.ddb-type-damage {
+  --ddb-border-color: #ef6c00;
+  --ddb-bg-color: rgba(239, 108, 0, 0.05);
+}
+.ddb-type-heal {
+  --ddb-border-color: #2e7d32;
+  --ddb-bg-color: rgba(46, 125, 50, 0.05);
+}
+.ddb-type-save {
+  --ddb-border-color: #1565c0;
+  --ddb-bg-color: rgba(21, 101, 192, 0.05);
+}
+.ddb-type-check {
+  --ddb-border-color: #6a1b9a;
+  --ddb-bg-color: rgba(106, 27, 154, 0.05);
+}
+.ddb-type-initiative {
+  --ddb-border-color: #ad1457;
+  --ddb-bg-color: rgba(173, 20, 87, 0.05);
+}
+.ddb-type-other {
+  --ddb-border-color: #37474f;
+  --ddb-bg-color: rgba(55, 71, 79, 0.05);
+}
+
+/* Dark mode overrides (Foundry v14 uses .theme-dark) */
+.theme-dark .ddb-roll-flavor {
+  background: var(--ddb-bg-color-dark, rgba(255, 255, 255, 0.03));
+}
+.theme-dark .ddb-type-attack { --ddb-bg-color-dark: rgba(211, 47, 47, 0.1); }
+.theme-dark .ddb-type-damage { --ddb-bg-color-dark: rgba(239, 108, 0, 0.1); }
+.theme-dark .ddb-type-heal { --ddb-bg-color-dark: rgba(46, 125, 50, 0.1); }
+.theme-dark .ddb-type-save { --ddb-bg-color-dark: rgba(21, 101, 192, 0.1); }
+.theme-dark .ddb-type-check { --ddb-bg-color-dark: rgba(106, 27, 154, 0.1); }
+.theme-dark .ddb-type-initiative { --ddb-bg-color-dark: rgba(173, 20, 87, 0.1); }
+.theme-dark .ddb-type-other { --ddb-bg-color-dark: rgba(55, 71, 79, 0.1); }
+
+.ddb-roll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.ddb-roll-label {
+  font-weight: 700;
+  font-size: 0.95em;
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+}
+
+.ddb-badges {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ddb-badge {
+  font-size: 0.65em;
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--color-text-primary);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.theme-dark .ddb-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.ddb-crit-badge {
+  font-size: 0.65em;
+  background: linear-gradient(135deg, #ffb300, #ff6f00);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 5px rgba(255, 111, 0, 0.4);
+  animation: ddb-crit-glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes ddb-crit-glow {
+  from {
+    box-shadow: 0 0 4px rgba(255, 179, 0, 0.4);
+    filter: brightness(1);
+  }
+  to {
+    box-shadow: 0 0 10px rgba(255, 111, 0, 0.8);
+    filter: brightness(1.2);
+  }
+}
+
+.ddb-spell-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 2px 0;
+}
+
+.ddb-spell-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ddb-spell-tag {
+  font-size: 0.68em;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+  padding: 1px 6px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.theme-dark .ddb-spell-tag {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.ddb-spell-desc {
+  font-size: 0.82em;
+  font-style: italic;
+  line-height: 1.5;
+  margin: 4px 0;
+  padding: 6px 9px;
+  background: rgba(0, 0, 0, 0.04);
+  border-left: 2px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0 4px 4px 0;
+  color: var(--color-text-secondary);
+}
+
+.theme-dark .ddb-spell-desc {
+  background: rgba(255, 255, 255, 0.02);
+  border-left-color: rgba(255, 255, 255, 0.15);
+}
+
+.ddb-roll-breakdown {
+  font-size: 0.82em;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: 3px;
+}
+
+/* Target and Damage results styling */
+.ddb-targets-container, .ddb-damage-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ddb-target-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+}
+
+.theme-dark .ddb-target-row {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.ddb-target-status {
+  font-weight: 700;
+  font-size: 0.82em;
+  letter-spacing: 0.04em;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.ddb-status-hit {
+  color: #2e7d32;
+}
+
+.ddb-status-miss {
+  color: #c62828;
+}
+
+.ddb-status-crit {
+  color: #ff8f00;
+  text-shadow: 0 0 1px rgba(255, 143, 0, 0.2);
+}
+
+.ddb-hp-bar-wrapper {
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 5px;
+}
+
+.theme-dark .ddb-hp-bar-wrapper {
+  background: rgba(255, 255, 255, 0.01);
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.ddb-hp-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ddb-hp-bar-outer {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.theme-dark .ddb-hp-bar-outer {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ddb-hp-bar-inner {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ddb-hp-green { background: #2e7d32; }
+.ddb-hp-orange { background: #f57c00; }
+.ddb-hp-red { background: #d32f2f; }
+
+.ddb-hp-text {
+  font-size: 0.72em;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom Settings form classes */
+.ddb-settings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 4px;
+}
+
+.ddb-settings-form .form-group {
+  margin-bottom: 8px;
+}
+
+.ddb-settings-form input.err {
+  border-color: #d32f2f;
+  background-color: rgba(211, 47, 47, 0.05);
+}
