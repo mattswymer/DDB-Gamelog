@@ -1,0 +1,138 @@
+<form class="ddb-settings-form" autocomplete="off">
+  <!-- Navigation Tabs -->
+  <nav class="sheet-tabs tabs" data-group="main">
+    <a class="item active" data-tab="connection"><i class="fas fa-network-wired"></i> Connection</a>
+    <a class="item" data-tab="features"><i class="fas fa-toggle-on"></i> Features</a>
+    <a class="item" data-tab="mapping"><i class="fas fa-users"></i> Actor Mapping</a>
+  </nav>
+
+  <!-- Tab Content -->
+  <section class="content">
+
+    <!-- Connection Tab -->
+    <div class="tab ddb-settings-tab active" data-tab="connection" data-group="main">
+      <div class="form-group">
+        <label>Local Bridge URL</label>
+        <div class="form-fields">
+          <input type="text" name="bridgeUrl" value="{{bridgeUrl}}" placeholder="ws://localhost:8765/ws">
+        </div>
+        <p class="notes">The WebSocket URL of your local bridge server. Typically ws://localhost:8765/ws.</p>
+      </div>
+
+      <div class="form-group">
+        <label>D&D Beyond Campaign ID</label>
+        <div class="form-fields">
+          <input type="text" name="campaignId" value="{{campaignId}}" placeholder="e.g., 1234567">
+        </div>
+        <p class="notes">Found in your campaign URL: https://www.dndbeyond.com/campaigns/<strong>[CampaignID]</strong></p>
+      </div>
+
+      <div class="form-group">
+        <label>D&D Beyond User ID</label>
+        <div class="form-fields">
+          <input type="text" name="userId" value="{{userId}}" placeholder="e.g., 123456789">
+        </div>
+        <p class="notes">Your numeric D&D Beyond User ID. Can be found in your account profile page or via cookies.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Cobalt Session Cookie</label>
+        <div class="form-fields">
+          <input type="password" name="cobaltCookie" value="{{cobaltCookie}}" placeholder="eyJ...">
+        </div>
+        <p class="notes">Your D&D Beyond Cobalt Session token. Extracted from cookies on dndbeyond.com (CobaltSession).</p>
+      </div>
+    </div>
+
+    <!-- Features Tab -->
+    <div class="tab ddb-settings-tab" data-tab="features" data-group="main">
+      <div class="form-group">
+        <label>Roll Mode</label>
+        <div class="form-fields">
+          <select name="rollMode">
+            {{#select rollMode}}
+            <option value="publicroll">Public Roll</option>
+            <option value="gmroll">GM Roll</option>
+            <option value="blindroll">Blind GM Roll</option>
+            <option value="selfroll">Self Roll</option>
+            {{/select}}
+          </select>
+        </div>
+        <p class="notes">Determines who sees the rolls forwarded from D&D Beyond.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Dice So Nice! Animation</label>
+        <div class="form-fields">
+          <input type="checkbox" name="showDiceSoNice" {{checked showDiceSoNice}}>
+        </div>
+        <p class="notes">Play 3D dice rolls in Foundry when rolls are forwarded from D&D Beyond.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Auto-set Initiative</label>
+        <div class="form-fields">
+          <input type="checkbox" name="autoInitiative" {{checked autoInitiative}}>
+        </div>
+        <p class="notes">Automatically updates the active combat tracker when rolling Initiative on DDB.</p>
+      </div>
+
+      <div class="form-group">
+        <label>HP & Attributes Sync</label>
+        <div class="form-fields">
+          <input type="checkbox" name="hpSync" {{checked hpSync}}>
+        </div>
+        <p class="notes">Enables real-time syncing of HP, AC, Inspiration, and Exhaustion from DDB.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Damage Confirmation</label>
+        <div class="form-fields">
+          <input type="checkbox" name="damageConfirm" {{checked damageConfirm}}>
+        </div>
+        <p class="notes">Prompt the GM to confirm, double, or adjust targets before applying damage.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Floating Damage Numbers</label>
+        <div class="form-fields">
+          <input type="checkbox" name="floatingNumbers" {{checked floatingNumbers}}>
+        </div>
+        <p class="notes">Display scrolling damage/heal text above tokens. Requires Sequencer module.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Automated Animations</label>
+        <div class="form-fields">
+          <input type="checkbox" name="autoAnimations" {{checked autoAnimations}}>
+        </div>
+        <p class="notes">Trigger weapon/spell animations on hit. Requires Automated Animations module.</p>
+      </div>
+    </div>
+
+    <!-- Mapping Tab -->
+    <div class="tab ddb-settings-tab" data-tab="mapping" data-group="main">
+      <p class="notes" style="margin-bottom: 12px;">Map your Foundry Player Characters to their corresponding D&D Beyond Character IDs.</p>
+      
+      <div class="mapping-list" style="display: flex; flex-direction: column; gap: 8px;">
+        {{#each actors}}
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+          <img src="{{this.img}}" style="width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--color-border);" />
+          <label style="flex: 1; font-weight: bold; margin: 0;">{{this.name}}</label>
+          <div class="form-fields" style="flex: 1;">
+            <input type="text" name="actorMap.{{this.id}}" value="{{this.ddbId}}" placeholder="DDB Character ID" style="text-align: center;">
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Sheet Footer -->
+  <footer class="sheet-footer flexrow" style="margin-top: 14px; display: flex; gap: 8px;">
+    <button type="submit" name="submit" class="primary">
+      <i class="fas fa-save"></i> Save Settings
+    </button>
+  </footer>
+</form>
