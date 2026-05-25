@@ -3,6 +3,8 @@
   "title": "D&D Beyond Gamelog (Self-Contained)",
   "description": "Bridges D&D Beyond rolls and character stats directly into Foundry VTT v14 using a local self-contained server bridge.",
   "version": "3.0.0",
+  "manifest": "https://raw.githubusercontent.com/mattswymer/DDB-Gamelog/main/module.json",
+  "download": "https://github.com/mattswymer/DDB-Gamelog/archive/refs/heads/main.zip",
   "compatibility": {
     "minimum": "12",
     "verified": "14"
