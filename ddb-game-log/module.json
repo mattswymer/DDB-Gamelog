@@ -1,45 +1,36 @@
 {
   "id": "ddb-game-log",
-  "name": "ddb-game-log",
-  "title": "D&D Beyond Gamelog",
-  "description": "D&D Beyond Game log client",
-  "version": "2.4.0",
-  "download": "https://github.com/IamWarHead/ddb-game-log/releases/download/2.4.0/ddb-game-log.zip",
-  "manifest": "https://github.com/IamWarHead/ddb-game-log/releases/latest/download/module.json",
-  "readme": "https://github.com/IamWarHead/ddb-game-log/blob/master/README.md",
-  "changelog": "https://github.com/IamWarHead/ddb-game-log/blob/master/CHANGELOG.md",
-  "url": "https://github.com/IamWarHead/ddb-game-log",
+  "title": "D&D Beyond Gamelog (Self-Contained)",
+  "description": "Bridges D&D Beyond rolls and character stats directly into Foundry VTT v14 using a local self-contained server bridge.",
+  "version": "3.0.0",
   "compatibility": {
-    "minimum": "12.330",
-    "verified": "13.346",
-    "maximum": 13
+    "minimum": "12",
+    "verified": "14"
   },
   "authors": [
     {
-      "name": "IamWarHead",
-      "email": "warhead@warhead.hu",
-      "url": "http://warhead.hu",
-      "patreon": "https://www.patreon.com/iamwarhead/",
-      "discord": "https://discord.com/invite/HSTtrphyFg"
+      "name": "Roland Hegedus (original)",
+      "email": "warhead@warhead.hu"
+    },
+    {
+      "name": "Antigravity (Rebirth)",
+      "url": "https://github.com/google-deepmind"
     }
   ],
   "relationships": {
-    "systems": [{
-      "id": "dnd5e",
-      "type": "system",
-      "compatibility": {
-        "minimum": "4.3.5",
-        "verified": "4.3.5"
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "minimum": "4.0.0",
+          "verified": "4.0.0"
+        }
       }
-    }]
+    ]
   },
-  "esmodules": ["dist/main.js"],
-  "styles": ["./dist/ddb-game-log.css"],
-  "packs": [],
+  "esmodules": ["module.js"],
+  "styles": ["ddb-game-log.css"],
   "socket": true,
-  "bugs": "https://github.com/IamWarHead/ddb-game-log/issues",
-  "flags": {
-    "allowBugReporter": true,
-    "noCopyEnvironmentSettings": true
-  }
+  "bugs": "https://github.com/IamWarHead/ddb-game-log/issues"
 }
